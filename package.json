@@ -4,11 +4,13 @@
   "description": "",
   "keywords": [],
   "main": "src/index.tsx",
+  "homepage": "https://gauravumrani.github.io/expense-tracker",
   "dependencies": {
+    "gh-pages": "^6.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-scripts": "^5.0.0",
-    "react-router-dom": "7.6.3"
+    "react-router-dom": "7.6.3",
+    "react-scripts": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "19.0.0",
@@ -20,7 +22,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "yarn build",
+    "deploy": "gh-pages -d build"
   },
   "browserslist": [
     ">0.2%",
