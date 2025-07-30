@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './styles.css';
 
 const defaultCategories = ['Grocery', 'Fuel', 'Misc', 'Food'];
+const defaultUsers = ['Gaurav', 'Dolly'];
 
 const getLocalData = (key, fallback) => {
   const data = localStorage.getItem(key);
@@ -149,8 +150,6 @@ const ReportPage = () => {
     }, {});
   };
 
-  const monthGroups = groupBy(expenses, formatMonth);
-  const weekGroups = groupBy(expenses, formatWeek);
 
   const groupAndSum = (group) => Object.entries(group).map(([period, items]) => {
     const categoryGroup = items.reduce((acc, item) => {
@@ -165,6 +164,8 @@ const ReportPage = () => {
     return { period, categorySums };
   });
 
+  const monthGroups = groupBy(expenses, formatMonth);
+  const weekGroups = groupBy(expenses, formatWeek);
   const monthReport = groupAndSum(monthGroups);
   const weekReport = groupAndSum(weekGroups);
 
