@@ -78,6 +78,8 @@ const ExpenseList = () => {
   const [expenses, setExpenses] = useState(() => getLocalData('expenses', []));
   const [categoryFilter, setCategoryFilter] = useState([]);
   const [dateFilter, setDateFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+  const [expenseByFilter, setExpenseByFilter] = useState('');
   const categories = getLocalData('categories', defaultCategories);
 
   const handleCategoryChange = (e) => {
@@ -85,10 +87,14 @@ const ExpenseList = () => {
     setCategoryFilter(options);
   };
 
-  const filtered = expenses.filter(e => 
-    (!categoryFilter.length || categoryFilter.includes(e.category)) &&
-    (!dateFilter || e.date === dateFilter)
-  );
+  const filtered = expenses
+    .filter(e =>
+      (!categoryFilter.length || categoryFilter.includes(e.category)) &&
+      (!dateFilter || e.date === dateFilter) &&
+      (!monthFilter || e.date.startsWith(monthFilter)) &&
+      (!expenseByFilter || e.expenseBy === expenseByFilter)
+    )
+    .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id); // latest at top
 
   const total = filtered.reduce((sum, e) => sum + e.amount, 0);
 
@@ -100,11 +106,16 @@ const ExpenseList = () => {
           {categories.map((cat, i) => <option key={i}>{cat}</option>)}
         </select>
         <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+        <input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} />
+        <select value={expenseByFilter} onChange={(e) => setExpenseByFilter(e.target.value)}>
+          <option value="">All</option>
+          {defaultUsers.map((user, i) => <option key={i}>{user}</option>)}
+        </select>
       </div>
       <ul className="list">
         {filtered.map(exp => (
           <li key={exp.id}>
-            <strong>{exp.date}</strong> - {exp.description} ({exp.category}) - ₹{exp.amount}
+            <strong>{exp.date}</strong> - {exp.description} ({exp.category}) - ₹{exp.amount} <em>by {exp.expenseBy}</em>
           </li>
         ))}
       </ul>
