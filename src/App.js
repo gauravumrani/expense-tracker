@@ -18,16 +18,18 @@ const ExpenseForm = () => {
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [expenseBy, setExpenseBy] = useState('');
   const [amount, setAmount] = useState('');
   const [categories, setCategories] = useState(() => getLocalData('categories', defaultCategories));
+  const [users, setUsers] = useState(() => getLocalData('users', defaultUsers));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const newExpense = { id: Date.now(), date, description, category, amount: parseFloat(amount) };
+    const newExpense = { id: Date.now(), date, description, category, expenseBy, amount: parseFloat(amount) };
     const expenses = getLocalData('expenses', []);
     expenses.push(newExpense);
     saveLocalData('expenses', expenses);
-    setDate(''); setDescription(''); setCategory(''); setAmount('');
+    setDate(''); setDescription(''); setCategory(''); setExpenseBy(''); setAmount('');
     alert('Expense added');
   };
 
@@ -40,6 +42,10 @@ const ExpenseForm = () => {
         <select value={category} onChange={(e) => setCategory(e.target.value)} required>
           <option value="">Select Category</option>
           {categories.map((cat, i) => <option key={i}>{cat}</option>)}
+        </select>
+        <select value={expenseBy} onChange={(e) => setExpenseBy(e.target.value)} required>
+          <option value="">Expense By</option>
+          {users.map((user, i) => <option key={i}>{user}</option>)}
         </select>
         <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} required />
         <button type="submit">Save</button>
