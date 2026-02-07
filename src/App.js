@@ -830,10 +830,19 @@ const DateRangeReportPage = () => {
 const NAV_ORDER = ['/', '/list', '/categories', '/dashboard', '/report'];
 const SWIPE_THRESHOLD = 60;
 
+const SWIPE_ANIMATION_MS = 280;
+
 const MainWithSwipeNav = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const touchStart = useRef({ x: 0, y: 0 });
+  const [slideDirection, setSlideDirection] = useState(null);
+
+  useEffect(() => {
+    if (!slideDirection) return;
+    const t = setTimeout(() => setSlideDirection(null), SWIPE_ANIMATION_MS);
+    return () => clearTimeout(t);
+  }, [slideDirection, location.pathname]);
 
   const getCurrentIndex = () => {
     const path = location.pathname;
@@ -857,15 +866,21 @@ const MainWithSwipeNav = ({ children }) => {
     if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
     const index = getCurrentIndex();
     if (deltaX < 0 && index < NAV_ORDER.length - 1) {
+      setSlideDirection('right');
       navigate(NAV_ORDER[index + 1]);
     } else if (deltaX > 0 && index > 0) {
+      setSlideDirection('left');
       navigate(NAV_ORDER[index - 1]);
     }
   };
 
+  const slideClass = slideDirection ? ` main-content--slide-${slideDirection}` : '';
+
   return (
     <main className="main main--swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      {children}
+      <div key={location.pathname} className={'main-content' + slideClass}>
+        {children}
+      </div>
     </main>
   );
 };
