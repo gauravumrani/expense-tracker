@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import './styles.css';
 import { useExpenses, useSettings, defaultCategories, defaultUsers } from './db';
@@ -23,7 +23,11 @@ const ExpenseForm = () => {
   }, [snackbar]);
 
   const openDatePicker = () => {
-    dateInputRef.current?.showPicker?.();
+    try {
+      dateInputRef.current?.showPicker?.();
+    } catch (_) {
+      /* showPicker requires user gesture; ignore */
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -48,7 +52,7 @@ const ExpenseForm = () => {
         <div className="form-row form-row--2">
           <div className="field">
             <label>Date</label>
-            <input ref={dateInputRef} type="date" className="input-date" value={date} onChange={(e) => setDate(e.target.value)} onFocus={openDatePicker} required />
+            <input ref={dateInputRef} type="date" className="input-date" value={date} onChange={(e) => setDate(e.target.value)} onClick={openDatePicker} required />
           </div>
           <div className="field">
             <label>Amount (₹)</label>
@@ -133,8 +137,16 @@ const ExpenseList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedMonths, setCollapsedMonths] = useState(() => new Set());
 
-  const openDateFilterPicker = () => dateFilterRef.current?.showPicker?.();
-  const openMonthFilterPicker = () => monthFilterRef.current?.showPicker?.();
+  const openDateFilterPicker = () => {
+    try {
+      dateFilterRef.current?.showPicker?.();
+    } catch (_) {}
+  };
+  const openMonthFilterPicker = () => {
+    try {
+      monthFilterRef.current?.showPicker?.();
+    } catch (_) {}
+  };
 
   const toggleMonth = (monthKey) => {
     setCollapsedMonths((prev) => {
@@ -216,11 +228,11 @@ const ExpenseList = () => {
         <div className="filter-row">
           <div className="filter-field">
             <label>Date</label>
-            <input ref={dateFilterRef} type="date" className="input-date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} onFocus={openDateFilterPicker} />
+            <input ref={dateFilterRef} type="date" className="input-date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} onClick={openDateFilterPicker} />
           </div>
           <div className="filter-field">
             <label>Month</label>
-            <input ref={monthFilterRef} type="month" className="input-date" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} onFocus={openMonthFilterPicker} />
+            <input ref={monthFilterRef} type="month" className="input-date" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} onClick={openMonthFilterPicker} />
           </div>
           <div className="filter-field">
             <label>Expense by</label>
@@ -815,6 +827,49 @@ const DateRangeReportPage = () => {
   );
 };
 
+const NAV_ORDER = ['/', '/list', '/categories', '/dashboard', '/report'];
+const SWIPE_THRESHOLD = 60;
+
+const MainWithSwipeNav = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const touchStart = useRef({ x: 0, y: 0 });
+
+  const getCurrentIndex = () => {
+    const path = location.pathname;
+    if (path === '/') return 0;
+    if (path.startsWith('/list')) return 1;
+    if (path.startsWith('/categories')) return 2;
+    if (path.startsWith('/dashboard')) return 3;
+    if (path.startsWith('/report')) return 4;
+    return 0;
+  };
+
+  const handleTouchStart = (e) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e) => {
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - touchStart.current.x;
+    const deltaY = t.clientY - touchStart.current.y;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    const index = getCurrentIndex();
+    if (deltaX < 0 && index < NAV_ORDER.length - 1) {
+      navigate(NAV_ORDER[index + 1]);
+    } else if (deltaX > 0 && index > 0) {
+      navigate(NAV_ORDER[index - 1]);
+    }
+  };
+
+  return (
+    <main className="main main--swipe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      {children}
+    </main>
+  );
+};
+
 export default function App() {
   const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine);
 
@@ -839,7 +894,7 @@ export default function App() {
         <NavLink to="/dashboard" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Dashboard</NavLink>
         <NavLink to="/report" end={false} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Reports</NavLink>
       </nav>
-      <main className="main">
+      <MainWithSwipeNav>
       <Routes>
         <Route path="/" element={<ExpenseForm />} />
         <Route path="/categories" element={<ManageCategories />} />
@@ -852,7 +907,7 @@ export default function App() {
         <Route path="/report/category-breakdown" element={<CategoryBreakdownReportPage />} />
         <Route path="/report/date-range" element={<DateRangeReportPage />} />
       </Routes>
-      </main>
+      </MainWithSwipeNav>
       {!isOnline && (
         <div className="offline-overlay" role="alert" aria-live="assertive">
           <p>You&apos;re offline. Connect to the internet to use the app.</p>
