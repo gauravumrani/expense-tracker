@@ -4,8 +4,10 @@
   "description": "",
   "keywords": [],
   "main": "src/index.tsx",
-  "homepage": "https://gauravumrani.github.io/expense-tracker",
+  "homepage": ".",
   "dependencies": {
+    "firebase": "^11.0.0",
+    "recharts": "^2.13.3",
     "gh-pages": "^6.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -24,7 +26,9 @@
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "predeploy": "yarn build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "deploy:firebase": "yarn build && firebase deploy",
+    "deploy:vercel": "vercel --prod"
   },
   "browserslist": [
     ">0.2%",
