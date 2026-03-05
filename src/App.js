@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import './styles.css';
-import { useExpenses, useSettings, defaultCategories, defaultUsers } from './db';
+import { useExpenses, useSettings, useHouseHelp, defaultHouseHelpRates, defaultCategories, defaultUsers } from './db';
 
 const ExpenseForm = () => {
   const dateInputRef = useRef(null);
@@ -827,16 +827,377 @@ const DateRangeReportPage = () => {
   );
 };
 
-const NAV_ORDER = ['/', '/list', '/categories', '/dashboard', '/report'];
+const HOUSE_HELP_ITEMS = [
+  { key: 'cookMorning', label: 'Cook came morning' },
+  { key: 'cookEvening', label: 'Cook came evening' },
+  { key: 'maidMorning', label: 'Maid came morning' },
+  { key: 'maidEvening', label: 'Maid came evening (utensil)' },
+  { key: 'milk1L', label: 'Milk came 1 litre' },
+  { key: 'milkHalfL', label: 'Milk came 1/2 litre' },
+  { key: 'paneer', label: 'Paneer came' },
+];
+
+const HouseHelpPage = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const { days, loading, saveHouseHelpDay, deleteHouseHelpDay } = useHouseHelp();
+  const { houseHelpRates, setHouseHelpRates } = useSettings();
+  const rates = { ...defaultHouseHelpRates, ...houseHelpRates };
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [totalMembers, setTotalMembers] = useState(1);
+  const [cookMorning, setCookMorning] = useState(false);
+  const [cookEvening, setCookEvening] = useState(false);
+  const [maidMorning, setMaidMorning] = useState(false);
+  const [maidEvening, setMaidEvening] = useState(false);
+  const [milk1L, setMilk1L] = useState(false);
+  const [milkHalfL, setMilkHalfL] = useState(false);
+  const [paneer, setPaneer] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [snackbar, setSnackbar] = useState(null);
+  const [showRates, setShowRates] = useState(false);
+  const [ratesEdit, setRatesEdit] = useState(() => ({ ...defaultHouseHelpRates }));
+
+  const dayData = days.find((d) => d.date === selectedDate || d.id === selectedDate);
+
+  useEffect(() => {
+    if (dayData) {
+      setTotalMembers(dayData.totalMembers ?? 1);
+      setCookMorning(!!dayData.cookMorning);
+      setCookEvening(!!dayData.cookEvening);
+      setMaidMorning(!!dayData.maidMorning);
+      setMaidEvening(!!dayData.maidEvening);
+      setMilk1L(!!dayData.milk1L);
+      setMilkHalfL(!!dayData.milkHalfL);
+      setPaneer(!!dayData.paneer);
+    }
+  }, [dayData, selectedDate]);
+
+  useEffect(() => {
+    if (!snackbar) return;
+    const t = setTimeout(() => setSnackbar(null), 3000);
+    return () => clearTimeout(t);
+  }, [snackbar]);
+
+  const members = Math.max(1, Math.min(6, Number(totalMembers) || 1));
+  const cookAmount = rates.cookPerPerson * members;
+  const maidMorningAmount = rates.maidMorningBase + rates.maidMorningPerPerson * members;
+  const maidEveningAmount = rates.maidEveningPerPerson * members;
+
+  const getAmount = (item) => {
+    switch (item.key) {
+      case 'cookMorning':
+      case 'cookEvening':
+        return rates.cookPerPerson * members;
+      case 'maidMorning':
+        return rates.maidMorningBase + rates.maidMorningPerPerson * members;
+      case 'maidEvening':
+        return rates.maidEveningPerPerson * members;
+      case 'milk1L':
+        return rates.milk1L;
+      case 'milkHalfL':
+        return rates.milkHalfL;
+      case 'paneer':
+        return rates.paneer;
+      default:
+        return 0;
+    }
+  };
+
+  const toggles = {
+    cookMorning: [cookMorning, setCookMorning],
+    cookEvening: [cookEvening, setCookEvening],
+    maidMorning: [maidMorning, setMaidMorning],
+    maidEvening: [maidEvening, setMaidEvening],
+    milk1L: [milk1L, setMilk1L],
+    milkHalfL: [milkHalfL, setMilkHalfL],
+    paneer: [paneer, setPaneer],
+  };
+
+  const dayTotalCook = (cookMorning ? cookAmount : 0) + (cookEvening ? cookAmount : 0);
+  const dayTotalMaid = (maidMorning ? maidMorningAmount : 0) + (maidEvening ? maidEveningAmount : 0);
+  const dayTotalDairy = (milk1L ? rates.milk1L : 0) + (milkHalfL ? rates.milkHalfL : 0) + (paneer ? rates.paneer : 0);
+  const dayTotal = dayTotalCook + dayTotalMaid + dayTotalDairy;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveHouseHelpDay(selectedDate, {
+        totalMembers: members,
+        cookMorning,
+        cookEvening,
+        maidMorning,
+        maidEvening,
+        milk1L,
+        milkHalfL,
+        paneer,
+      });
+      setSnackbar('Saved');
+    } catch (e) {
+      setSnackbar(e?.message || 'Failed to save');
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!dayData) return;
+    setSaving(true);
+    try {
+      await deleteHouseHelpDay(selectedDate);
+      setSnackbar('Day deleted');
+    } catch (e) {
+      setSnackbar(e?.message || 'Failed to delete');
+    }
+    setSaving(false);
+  };
+
+  const computeDayBreakdown = (d, r) => {
+    const m = Math.max(1, Math.min(6, Number(d.totalMembers) || 1));
+    const cookAmt = r.cookPerPerson * m;
+    const maidAmt = r.maidMorningBase + r.maidMorningPerPerson * m;
+    let cook = 0, maid = 0, dairy = 0;
+    if (d.cookMorning) cook += cookAmt;
+    if (d.cookEvening) cook += cookAmt;
+    if (d.maidMorning) maid += maidAmt;
+    if (d.maidEvening) maid += r.maidEveningPerPerson * m;
+    if (d.milk1L) dairy += r.milk1L;
+    if (d.milkHalfL) dairy += r.milkHalfL;
+    if (d.paneer) dairy += r.paneer;
+    return { cook, maid, dairy, total: cook + maid + dairy };
+  };
+
+  const daysByMonth = React.useMemo(() => {
+    const byMonth = {};
+    days.forEach((d) => {
+      const date = d.date || d.id;
+      if (!date) return;
+      const monthKey = date.slice(0, 7);
+      const b = computeDayBreakdown(d, rates);
+      const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      if (!byMonth[monthKey]) byMonth[monthKey] = { label: new Date(monthKey + '-01').toLocaleString('default', { month: 'short', year: 'numeric' }), days: [], total: 0, cook: 0, maid: 0, dairy: 0 };
+      byMonth[monthKey].days.push({ date, dateLabel, ...b });
+      byMonth[monthKey].total += b.total;
+      byMonth[monthKey].cook += b.cook;
+      byMonth[monthKey].maid += b.maid;
+      byMonth[monthKey].dairy += b.dairy;
+    });
+    return Object.entries(byMonth)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([monthKey, { label, days: monthDays, total, cook, maid, dairy }]) => ({
+        monthKey,
+        label,
+        days: monthDays.sort((a, b) => b.date.localeCompare(a.date)),
+        total,
+        cook,
+        maid,
+        dairy,
+      }));
+  }, [days, rates]);
+
+  const monthTotals = React.useMemo(() => {
+    const byMonth = {};
+    days.forEach((d) => {
+      const date = d.date || d.id;
+      if (!date) return;
+      const monthKey = date.slice(0, 7);
+      const b = computeDayBreakdown(d, rates);
+      if (!byMonth[monthKey]) byMonth[monthKey] = { total: 0, cook: 0, maid: 0, dairy: 0 };
+      byMonth[monthKey].total += b.total;
+      byMonth[monthKey].cook += b.cook;
+      byMonth[monthKey].maid += b.maid;
+      byMonth[monthKey].dairy += b.dairy;
+    });
+    return Object.entries(byMonth)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([monthKey, { total, cook, maid, dairy }]) => ({
+        monthKey,
+        label: new Date(monthKey + '-01').toLocaleString('default', { month: 'short', year: 'numeric' }),
+        total,
+        cook,
+        maid,
+        dairy,
+      }));
+  }, [days, rates]);
+
+  const handleSaveRates = async () => {
+    const numRates = {
+      cookPerPerson: Number(ratesEdit.cookPerPerson) || 0,
+      maidMorningBase: Number(ratesEdit.maidMorningBase) || 0,
+      maidMorningPerPerson: Number(ratesEdit.maidMorningPerPerson) || 0,
+      maidEveningPerPerson: Number(ratesEdit.maidEveningPerPerson) || 0,
+      milk1L: Number(ratesEdit.milk1L) || 0,
+      milkHalfL: Number(ratesEdit.milkHalfL) || 0,
+      paneer: Number(ratesEdit.paneer) || 0,
+    };
+    setSaving(true);
+    try {
+      await setHouseHelpRates(numRates);
+      setSnackbar('Rates saved');
+      setShowRates(false);
+    } catch (e) {
+      setSnackbar(e?.message || 'Failed to save rates');
+    }
+    setSaving(false);
+  };
+
+  React.useEffect(() => {
+    if (showRates) setRatesEdit({ ...defaultHouseHelpRates, ...houseHelpRates });
+  }, [showRates, houseHelpRates]);
+
+  if (loading) return <div className="container">Loading…</div>;
+
+  return (
+    <div className="container">
+      <h2>House Help / Utility</h2>
+      <p className="report-desc">Mark daily presence and see total per month. Change date to update any day.</p>
+
+      <div className="househelp-rates-section">
+        <button type="button" className="btn btn--secondary" onClick={() => setShowRates((s) => !s)}>
+          {showRates ? 'Hide base amounts' : 'Edit base amounts (Firebase)'}
+        </button>
+        {showRates && (
+          <div className="househelp-rates-form">
+            <div className="househelp-rates-grid">
+              <div className="field">
+                <label>Cook per person (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.cookPerPerson} onChange={(e) => setRatesEdit((r) => ({ ...r, cookPerPerson: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Maid morning base (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.maidMorningBase} onChange={(e) => setRatesEdit((r) => ({ ...r, maidMorningBase: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Maid morning per person (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.maidMorningPerPerson} onChange={(e) => setRatesEdit((r) => ({ ...r, maidMorningPerPerson: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Maid evening per person (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.maidEveningPerPerson} onChange={(e) => setRatesEdit((r) => ({ ...r, maidEveningPerPerson: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Milk 1 L (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.milk1L} onChange={(e) => setRatesEdit((r) => ({ ...r, milk1L: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Milk 1/2 L (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.milkHalfL} onChange={(e) => setRatesEdit((r) => ({ ...r, milkHalfL: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>Paneer (₹)</label>
+                <input type="number" step="0.01" min="0" value={ratesEdit.paneer} onChange={(e) => setRatesEdit((r) => ({ ...r, paneer: e.target.value }))} />
+              </div>
+            </div>
+            <button type="button" className="btn btn--primary" onClick={handleSaveRates} disabled={saving}>Save rates</button>
+          </div>
+        )}
+      </div>
+
+      <div className="househelp-form">
+        <div className="form-row form-row--2">
+          <div className="field">
+            <label>Date</label>
+            <input
+              type="date"
+              className="input-date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Total members</label>
+            <select value={totalMembers} onChange={(e) => setTotalMembers(Number(e.target.value))}>
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <ul className="househelp-list">
+          {HOUSE_HELP_ITEMS.map((item) => {
+            const amount = getAmount(item);
+            const [on, setOn] = toggles[item.key];
+            return (
+              <li key={item.key} className="househelp-row">
+                <label className="househelp-toggle">
+                  <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} />
+                  <span className="househelp-label">{item.label}</span>
+                </label>
+                <span className="househelp-amount">₹{amount.toFixed(2)}</span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="househelp-day-total">
+          <p className="househelp-total-line"><span>Cook:</span> ₹{dayTotalCook.toFixed(2)} <span>Maid:</span> ₹{dayTotalMaid.toFixed(2)} <span>Dairy:</span> ₹{dayTotalDairy.toFixed(2)}</p>
+          <p className="househelp-total-sum">Total: ₹{dayTotal.toFixed(2)}</p>
+        </div>
+        <div className="househelp-actions">
+          <button type="button" className="btn btn--primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          {dayData && (
+            <button type="button" className="btn btn--danger" onClick={handleDelete} disabled={saving}>
+              Delete day
+            </button>
+          )}
+        </div>
+        <p className="househelp-edit-hint">Select a date above to view or edit that day.</p>
+      </div>
+
+      {snackbar && <div className="snackbar">{snackbar}</div>}
+
+      <h3>Data per day & total per month</h3>
+      {daysByMonth.length === 0 ? (
+        <p className="report-empty">No data yet. Save a day to see totals.</p>
+      ) : (
+        <div className="househelp-by-month">
+          {daysByMonth.map(({ monthKey, label, days: monthDays, total, cook, maid, dairy }) => (
+            <div key={monthKey} className="househelp-month-block">
+              <h4 className="househelp-month-title">{label}</h4>
+              <ul className="househelp-day-list">
+                {monthDays.map(({ date, dateLabel, total: dt, cook: dc, maid: dm, dairy: dd }) => (
+                  <li key={date} className="househelp-day-row">
+                    <button type="button" className="househelp-day-link" onClick={() => setSelectedDate(date)}>
+                      {dateLabel}
+                    </button>
+                    <span className="househelp-day-cats">Cook ₹{dc.toFixed(2)} · Maid ₹{dm.toFixed(2)} · Dairy ₹{dd.toFixed(2)}</span>
+                    <span className="househelp-day-amount">₹{dt.toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="househelp-month-total">Cook ₹{cook.toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Maid ₹{maid.toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Dairy ₹{dairy.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+              <p className="househelp-month-total-sum">Month total: ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {monthTotals.length === 0 ? null : (
+        <ul className="househelp-month-list">
+          {monthTotals.map(({ monthKey, label, total, cook, maid, dairy }) => (
+            <li key={monthKey} className="househelp-month-row househelp-month-row--breakdown">
+              <span>{label}</span>
+              <span className="househelp-month-cats">Cook ₹{(cook || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Maid ₹{(maid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Dairy ₹{(dairy || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <strong>₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const NAV_ORDER = ['/', '/list', '/categories', '/dashboard', '/report', '/house-help'];
 const SWIPE_THRESHOLD = 60;
 
 const SWIPE_ANIMATION_MS = 280;
 
-const MainWithSwipeNav = ({ children }) => {
+const MainWithSwipeNav = ({ children, isAdminMode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const touchStart = useRef({ x: 0, y: 0 });
   const [slideDirection, setSlideDirection] = useState(null);
+  const navOrder = isAdminMode ? NAV_ORDER : ['/house-help'];
 
   useEffect(() => {
     if (!slideDirection) return;
@@ -846,12 +1207,8 @@ const MainWithSwipeNav = ({ children }) => {
 
   const getCurrentIndex = () => {
     const path = location.pathname;
-    if (path === '/') return 0;
-    if (path.startsWith('/list')) return 1;
-    if (path.startsWith('/categories')) return 2;
-    if (path.startsWith('/dashboard')) return 3;
-    if (path.startsWith('/report')) return 4;
-    return 0;
+    const idx = navOrder.findIndex((p) => path === p || (p !== '/' && path.startsWith(p)));
+    return idx >= 0 ? idx : 0;
   };
 
   const handleTouchStart = (e) => {
@@ -865,12 +1222,12 @@ const MainWithSwipeNav = ({ children }) => {
     const deltaY = t.clientY - touchStart.current.y;
     if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
     const index = getCurrentIndex();
-    if (deltaX < 0 && index < NAV_ORDER.length - 1) {
+    if (deltaX < 0 && index < navOrder.length - 1) {
       setSlideDirection('right');
-      navigate(NAV_ORDER[index + 1]);
+      navigate(navOrder[index + 1]);
     } else if (deltaX > 0 && index > 0) {
       setSlideDirection('left');
-      navigate(NAV_ORDER[index - 1]);
+      navigate(navOrder[index - 1]);
     }
   };
 
@@ -885,8 +1242,63 @@ const MainWithSwipeNav = ({ children }) => {
   );
 };
 
+const ADMIN_PIN = '1947';
+const ADMIN_STORAGE_KEY = 'dora_admin';
+
+const PinModal = ({ show, onClose, onSuccess }) => {
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    if (pin === ADMIN_PIN) {
+      onSuccess();
+      setPin('');
+      onClose();
+    } else {
+      setError('Wrong PIN');
+      setPin('');
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="admin-pin-overlay" role="dialog" aria-label="Admin PIN">
+      <div className="admin-pin-modal">
+        <h3>Admin mode</h3>
+        <p className="admin-pin-hint">Enter PIN</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            className="admin-pin-input"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="PIN"
+            autoFocus
+          />
+          {error && <p className="admin-pin-error">{error}</p>}
+          <div className="admin-pin-actions">
+            <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn--primary">Unlock</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' && navigator.onLine);
+  const [isAdminMode, setIsAdminMode] = useState(() => {
+    if (typeof sessionStorage === 'undefined') return false;
+    return sessionStorage.getItem(ADMIN_STORAGE_KEY) === '1';
+  });
+  const [showPinModal, setShowPinModal] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -899,30 +1311,68 @@ export default function App() {
     };
   }, []);
 
+  const enterAdmin = () => {
+    sessionStorage.setItem(ADMIN_STORAGE_KEY, '1');
+    setIsAdminMode(true);
+  };
+
+  const exitAdmin = () => {
+    sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+    setIsAdminMode(false);
+  };
+
+  const handleAdminIconClick = () => {
+    if (isAdminMode) {
+      exitAdmin();
+    } else {
+      setShowPinModal(true);
+    }
+  };
+
   return (
     <Router>
       <div className={'app-wrap' + (!isOnline ? ' app-offline' : '')}>
       <nav className="navbar">
-        <NavLink to="/" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} end>Add</NavLink>
-        <NavLink to="/list" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>List</NavLink>
-        <NavLink to="/categories" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Categories</NavLink>
-        <NavLink to="/dashboard" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Dashboard</NavLink>
-        <NavLink to="/report" end={false} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Reports</NavLink>
+        {isAdminMode && (
+          <>
+            <NavLink to="/" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} end>Add</NavLink>
+            <NavLink to="/list" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>List</NavLink>
+            <NavLink to="/categories" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Categories</NavLink>
+            <NavLink to="/dashboard" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Dashboard</NavLink>
+            <NavLink to="/report" end={false} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Reports</NavLink>
+          </>
+        )}
+        <NavLink to="/house-help" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>House Help</NavLink>
+        <button type="button" className="nav-link nav-link--admin" onClick={handleAdminIconClick} title={isAdminMode ? 'Exit admin mode' : 'Admin'}>
+          <span className="admin-icon" aria-hidden>{isAdminMode ? '🔓' : '🔒'}</span>
+        </button>
       </nav>
-      <MainWithSwipeNav>
+      <MainWithSwipeNav isAdminMode={isAdminMode}>
       <Routes>
-        <Route path="/" element={<ExpenseForm />} />
-        <Route path="/categories" element={<ManageCategories />} />
-        <Route path="/list" element={<ExpenseList />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/report" element={<ReportIndex />} />
-        <Route path="/report/monthly" element={<MonthlyReportPage />} />
-        <Route path="/report/by-person" element={<CategoryPersonReportPage />} />
-        <Route path="/report/person-summary" element={<PersonSummaryReportPage />} />
-        <Route path="/report/category-breakdown" element={<CategoryBreakdownReportPage />} />
-        <Route path="/report/date-range" element={<DateRangeReportPage />} />
+        {isAdminMode ? (
+          <>
+            <Route path="/" element={<ExpenseForm />} />
+            <Route path="/categories" element={<ManageCategories />} />
+            <Route path="/list" element={<ExpenseList />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/report" element={<ReportIndex />} />
+            <Route path="/report/monthly" element={<MonthlyReportPage />} />
+            <Route path="/report/by-person" element={<CategoryPersonReportPage />} />
+            <Route path="/report/person-summary" element={<PersonSummaryReportPage />} />
+            <Route path="/report/category-breakdown" element={<CategoryBreakdownReportPage />} />
+            <Route path="/report/date-range" element={<DateRangeReportPage />} />
+            <Route path="/house-help" element={<HouseHelpPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/house-help" element={<HouseHelpPage />} />
+            <Route path="*" element={<Navigate to="/house-help" replace />} />
+          </>
+        )}
       </Routes>
       </MainWithSwipeNav>
+      <PinModal show={showPinModal} onClose={() => setShowPinModal(false)} onSuccess={enterAdmin} />
       {!isOnline && (
         <div className="offline-overlay" role="alert" aria-live="assertive">
           <p>You&apos;re offline. Connect to the internet to use the app.</p>

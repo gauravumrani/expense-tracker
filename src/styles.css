@@ -886,6 +886,299 @@ a.nav-link[aria-current="page"] {
   font-weight: 600;
 }
 
+/* ----- House Help / Utility ----- */
+.househelp-form {
+  margin-bottom: 1.5rem;
+}
+
+.househelp-form .field {
+  margin-bottom: 1rem;
+}
+
+.househelp-form .form-row--2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.househelp-form input,
+.househelp-form select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.househelp-form input:focus,
+.househelp-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.househelp-form .input-date {
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.househelp-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.househelp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+
+.househelp-row:last-child {
+  border-bottom: none;
+}
+
+.househelp-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.househelp-toggle input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex-shrink: 0;
+}
+
+.househelp-label {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.househelp-amount {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.househelp-day-total {
+  margin: 1rem 0 0.75rem;
+}
+
+.househelp-total-line {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0 0 0.25rem;
+}
+
+.househelp-total-line span {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.househelp-total-sum {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.househelp-day-cats {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.househelp-month-total-sum {
+  font-weight: 600;
+  margin: 0.25rem 0 0;
+  padding-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.househelp-month-row--breakdown {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.househelp-month-cats {
+  width: 100%;
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: var(--text-muted);
+}
+
+.househelp-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.btn--danger {
+  background: #dc2626;
+  color: white;
+  padding: 0.7rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn--danger:hover {
+  background: #b91c1c;
+}
+
+.btn--danger:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.househelp-edit-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.househelp-rates-section {
+  margin-bottom: 1.5rem;
+}
+
+.househelp-rates-form {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.househelp-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.househelp-rates-grid .field label {
+  font-size: 0.8rem;
+}
+
+.househelp-rates-grid input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.househelp-by-month {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.househelp-month-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.househelp-month-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.househelp-day-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+
+.househelp-day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+
+.househelp-day-row:last-child {
+  border-bottom: none;
+}
+
+.househelp-day-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.househelp-day-link:hover {
+  text-decoration: underline;
+}
+
+.househelp-day-amount {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.househelp-month-total {
+  font-weight: 600;
+  margin: 0.5rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+.househelp-month-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.househelp-month-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+.househelp-month-row:last-child {
+  border-bottom: none;
+}
+
+.househelp-month-row strong {
+  color: var(--text);
+}
+
 @media (max-width: 640px) {
   .navbar {
     padding-left: 0.75rem;
@@ -928,6 +1221,10 @@ a.nav-link[aria-current="page"] {
   .categories-add .btn {
     width: 100%;
   }
+
+  .househelp-form .form-row--2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -959,4 +1256,94 @@ a.nav-link[aria-current="page"] {
     grid-column: 1;
     font-size: 0.8rem;
   }
+}
+
+/* ----- Admin PIN modal ----- */
+.admin-pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.admin-pin-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.admin-pin-modal h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.admin-pin-hint {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.admin-pin-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.25em;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+.admin-pin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.admin-pin-error {
+  color: var(--danger, #c00);
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+.admin-pin-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.admin-pin-actions .btn {
+  margin-top: 0;
+}
+
+/* Admin icon in navbar */
+.nav-link--admin {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-link--admin:hover {
+  color: var(--primary);
+}
+
+.nav-link--admin .admin-icon {
+  font-size: 1.25rem;
 }
